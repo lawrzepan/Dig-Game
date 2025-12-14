@@ -595,3 +595,6 @@ Temporary Items
 # Android studio 3.1+ serialized cache file
 
 # End of https://www.toptal.com/developers/gitignore/api/rider,macos,csharp,jetbrains
+
+/.config
+/.vscode
