@@ -3,19 +3,40 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace DigGame.Terrain.Objects;
 
+public interface IPlaceableVertices
+{
+    public abstract VertexPositionColorTexture[] Vertices { get; }
+    static abstract VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices);
+}
 /// <summary>
 /// The base class for anything placeable.
 /// </summary>
 public abstract class Placeable
 {
-    public Coordinate Coordinate { get; set; }
-    
-    public static VertexPositionColorTexture[] Vertices { get; }
+    public abstract Coordinate Coordinate { get; set; }
+
+    public VertexPositionColorTexture[] AddCoordinate(VertexPositionColorTexture[] vertices)
+    {
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i].Position += (Vector3)Coordinate;
+        }
+
+        return vertices;
+    }
 }
 
-public abstract class Stone : Placeable
+public abstract class Stone : Placeable, IPlaceableVertices
 {
-    public static VertexPositionColorTexture[] Vertices { get; } = SetTextures(VertexLayout.CubeLayout);
+    public Coordinate coordinate;
+
+    public VertexPositionColorTexture[] Vertices
+    {
+        get
+        {
+            return AddCoordinate(SetTextures(VertexLayout.CubeLayout));
+        }
+    }
 
     public static VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices)
     {
