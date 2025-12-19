@@ -1,4 +1,0 @@
-
-1.  Chunk data -> 
-2.  array of objects -> 
-3.  vertices

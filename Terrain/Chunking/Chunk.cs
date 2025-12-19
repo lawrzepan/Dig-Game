@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using DigGame.Terrain.Objects;
 using DigGame.Terrain.Tile;
+using DigGame.Terrain.Objects;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGameLibrary.Noise;
 
@@ -6,9 +9,11 @@ namespace DigGame.Terrain.Chunking;
 
 public struct ChunkData()
 {
-    private TileType[] data = new TileType[Chunk.Size * Chunk.Size];
+    private PlaceableType[] data = new PlaceableType[Chunk.Size * Chunk.Size];
 
-    public TileType this[int x, int y]
+    public int Length { get; } = Chunk.Size * Chunk.Size;
+    
+    public PlaceableType this[int x, int y]
     {
         get => data[x + y * Chunk.Size];
         set
@@ -25,11 +30,38 @@ public class Chunk
     /// </summary>
     public const int Size = 8;
     
-    public int X { get; private set; }
-    public int Y { get; private set; }
-    public int Z { get; private set; }
+    public Coordinate Coordinate { get; private set; }
 
     private ChunkData data = new ChunkData();
+
+    private bool PlaceablesInitialised = false;
+    private List<Placeable> _Placeables = new List<Placeable>(127);
+
+    public List<Placeable> Placeables
+    {
+        get => PlaceablesInitialised ? _Placeables : AsPlaceables();
+    }
+
+    private List<Placeable> AsPlaceables()
+    {
+        for (int x = 0; x < Chunk.Size; x++)
+        {
+            for (int y = 0; y < Chunk.Size; y++)
+            {
+                switch (data[x, y])
+                {
+                    case PlaceableType.Stone:
+                        _Placeables.Add(new Stone()
+                        {
+                            Coordinate = new Coordinate(x, y, 0, 0)
+                        });
+                        break;
+                }
+            }
+        }
+
+        return _Placeables;
+    }
 
     public Chunk()
     {
@@ -37,7 +69,7 @@ public class Chunk
         {
             for (int y = 0; y < Size; y++)
             {
-                data[x, y] = Noise.Perlin((X + x) * 0.1, (Y + y) * 0.1) > 0 ? TileType.Air : TileType.Stone;
+                data[x, y] = Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Y + y) * 0.1) > 0 ? PlaceableType.Air : PlaceableType.Stone;
             }
         }
     }

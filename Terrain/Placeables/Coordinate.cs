@@ -11,4 +11,12 @@ public struct Coordinate
 
     public static explicit operator Vector3(Coordinate coordinate) =>
         new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
+
+    public Coordinate(int x, int y, int z, int layer)
+    {
+        X = x;
+        Y = y;
+        Z = z;
+        Layer = layer;
+    }
 }

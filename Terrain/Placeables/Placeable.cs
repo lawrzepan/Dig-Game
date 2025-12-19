@@ -26,9 +26,9 @@ public abstract class Placeable
     }
 }
 
-public abstract class Stone : Placeable, IPlaceableVertices
+public sealed class Stone : Placeable, IPlaceableVertices
 {
-    public Coordinate coordinate;
+    public override Coordinate Coordinate { get; set; }
 
     public VertexPositionColorTexture[] Vertices
     {
