@@ -8,11 +8,13 @@ public interface IPlaceableVertices
     public abstract VertexPositionColorTexture[] Vertices { get; }
     static abstract VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices);
 }
+
 /// <summary>
 /// The base class for anything placeable.
 /// </summary>
 public abstract class Placeable
 {
+    public abstract VertexPositionColorTexture[] Vertices { get; }
     public abstract Coordinate Coordinate { get; set; }
 
     public VertexPositionColorTexture[] AddCoordinate(VertexPositionColorTexture[] vertices)
@@ -30,7 +32,7 @@ public sealed class Stone : Placeable, IPlaceableVertices
 {
     public override Coordinate Coordinate { get; set; }
 
-    public VertexPositionColorTexture[] Vertices
+    public override VertexPositionColorTexture[] Vertices
     {
         get
         {
@@ -40,7 +42,7 @@ public sealed class Stone : Placeable, IPlaceableVertices
 
     public static VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices)
     {
-        float textureWidth = 32f / 1024f;
+        float textureWidth = 1;
         for (int i = 0; i < vertices.Length; i += 6)
         {
             vertices[i].TextureCoordinate = new Vector2(0, textureWidth);

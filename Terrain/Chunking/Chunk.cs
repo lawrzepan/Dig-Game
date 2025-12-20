@@ -34,12 +34,12 @@ public class Chunk
 
     private ChunkData data = new ChunkData();
 
-    private bool PlaceablesInitialised = false;
-    private List<Placeable> _Placeables = new List<Placeable>(127);
+    private bool placeablesInitialised = false;
+    private List<Placeable> _placeables = new List<Placeable>(127);
 
     public List<Placeable> Placeables
     {
-        get => PlaceablesInitialised ? _Placeables : AsPlaceables();
+        get => placeablesInitialised ? _placeables : AsPlaceables();
     }
 
     private List<Placeable> AsPlaceables()
@@ -51,7 +51,7 @@ public class Chunk
                 switch (data[x, y])
                 {
                     case PlaceableType.Stone:
-                        _Placeables.Add(new Stone()
+                        _placeables.Add(new Stone()
                         {
                             Coordinate = new Coordinate(x, y, 0, 0)
                         });
@@ -60,8 +60,10 @@ public class Chunk
             }
         }
 
-        return _Placeables;
+        return _placeables;
     }
+    
+    
 
     public Chunk()
     {
@@ -69,7 +71,8 @@ public class Chunk
         {
             for (int y = 0; y < Size; y++)
             {
-                data[x, y] = Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Y + y) * 0.1) > 0 ? PlaceableType.Air : PlaceableType.Stone;
+                data[x, y] =
+                    Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Y + y) * 0.1) < 0 ? PlaceableType.Air : PlaceableType.Stone;
             }
         }
     }

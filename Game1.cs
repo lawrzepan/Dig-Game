@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Diagnostics;
+using DigGame.Draw;
 using DigGame.Draw.Camera;
+using DigGame.Terrain.Chunking;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary;
+using MonoGameLibrary.Noise;
 
 namespace DigGame;
 
@@ -17,7 +21,8 @@ public class Game1 : Core
         Position = new Vector3(-3f, 5f, -3f)
     };
 
-    private VertexBuffer vertexBuffer;
+    private ChunkDrawer chunkDrawer;
+    private Chunk chunk;
 
     private Texture2D texture;
     
@@ -52,46 +57,37 @@ public class Game1 : Core
         camera.shader.VertexColorEnabled = false; // do not remove this line
 
         GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
-        
-        vertexBuffer = new VertexBuffer(
-            GraphicsDevice,
-            VertexPositionTexture.VertexDeclaration,
-            36,
-            BufferUsage.None
-        );
-        
-        VertexPositionTexture[] vertices = new[]
+
+        var stopwatch = Stopwatch.StartNew();
+
+        texture = new Texture2D(GraphicsDevice, 128, 128);
+
+        Color[] data = new Color[128 * 128];
+        for (float x = 0; x < 128f; x++)
         {
-            new VertexPositionTexture(new Vector3(-1.5f, -1.5f, -1.5f), new Vector2(0, 1f)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, -1.5f, 1.5f), new Vector2(1f, 1f)),
-            new VertexPositionTexture(new Vector3(-1.5f, -1.5f, 1.5f), new Vector2(1f, 1f)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, 1.5f), new Vector2(1f, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, -1.5f, -1.5f), new Vector2(0, 1f)),
-            new VertexPositionTexture(new Vector3(1.5f, -1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, -1.5f), new Vector2(1f, 1f)),
-            new VertexPositionTexture(new Vector3(1.5f, -1.5f, -1.5f), new Vector2(0f, 1f)),
-            new VertexPositionTexture(new Vector3(1.5f, 1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, -1.5f), new Vector2(1f, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, -1.5f), new Vector2(0, 1f)),
-            new VertexPositionTexture(new Vector3(1.5f, 1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, 1.5f), new Vector2(1f, 1f)),
-            new VertexPositionTexture(new Vector3(-1.5f, 1.5f, 1.5f), new Vector2(1f, 1f)),
-            new VertexPositionTexture(new Vector3(1.5f, 1.5f, -1.5f), new Vector2(0, 0)),
-            new VertexPositionTexture(new Vector3(1.5f, 1.5f, 1.5f), new Vector2(1f, 0)),
-        };
+            for (float y = 0; y < 128f; y++)
+            {
+                float intensity = (float)Noise.Perlin(x / 10, y / 10) / 2f + 0.5f;
+                data[(int)x + (int)y * 128] = new Color(intensity, intensity, intensity);
+            }
+        }
+        texture.SetData(data);
+        camera.shader.Texture = texture;
         
-        vertexBuffer.SetData(0, vertices, 0, 18, 0 );
+        chunk = new Chunk();
+        chunkDrawer = new ChunkDrawer(GraphicsDevice);
+        chunkDrawer.UploadChunk(chunk);
+        
+        stopwatch.Stop();
+        
+        Console.WriteLine($"took {Math.Round(stopwatch.ElapsedTicks * (1000000f / Stopwatch.Frequency), 1)} microseconds");
     }
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed ||
-            Keyboard.GetState().IsKeyDown(Keys.Escape))
-            Exit();
-
         var keyboardState = Keyboard.GetState();
+        
+        if (keyboardState.IsKeyDown(Keys.Escape)) Exit();
         
         if (keyboardState.IsKeyDown(Keys.A))
         {
@@ -120,17 +116,9 @@ public class Game1 : Core
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.CornflowerBlue);
-
-        camera.shader.Texture = texture;
+        GraphicsDevice.Clear(Color.Black);
         
-        foreach (var pass in camera.shader.CurrentTechnique.Passes)
-        {
-            pass.Apply();
-            
-            GraphicsDevice.SetVertexBuffer(vertexBuffer);
-            GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, 6);
-        }
+        chunkDrawer.DrawUploadedChunks(camera.shader);
 
         base.Draw(gameTime);
     }
