@@ -5,6 +5,12 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace DigGame.Terrain.Objects;
 
+public enum VertexLayoutType
+{
+    None = 0,
+    Cube = 1,
+}
+
 public static partial class VertexLayout
 {
     public static VertexPositionColorTexture[] CubeLayout

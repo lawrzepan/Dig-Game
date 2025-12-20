@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using DigGame.Terrain.Objects;
 using DigGame.Terrain.Tile;
 using DigGame.Terrain.Objects;
+using DigGame.Terrain.Placeables;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGameLibrary.Noise;
 
@@ -9,16 +11,19 @@ namespace DigGame.Terrain.Chunking;
 
 public struct ChunkData()
 {
-    private PlaceableType[] data = new PlaceableType[Chunk.Size * Chunk.Size];
+    private Int16[] data = new Int16[Chunk.Size * Chunk.Size * Chunk.Size];
 
-    public int Length { get; } = Chunk.Size * Chunk.Size;
-    
-    public PlaceableType this[int x, int y]
+    public int Length
     {
-        get => data[x + y * Chunk.Size];
+        get => data.Length;
+    }
+    
+    public Int16 this[int x, int y, int z]
+    {
+        get => data[x + y * Chunk.Size + z * Chunk.Size * Chunk.Size];
         set
         {
-            data[x + y * Chunk.Size] = value;
+            data[x + y * Chunk.Size + z * Chunk.Size * Chunk.Size] = value;
         }
     }
 }
@@ -48,22 +53,34 @@ public class Chunk
         {
             for (int y = 0; y < Chunk.Size; y++)
             {
-                switch (data[x, y])
+                for (int z = 0; z < Chunk.Size; z++)
                 {
-                    case PlaceableType.Stone:
-                        _placeables.Add(new Stone()
-                        {
-                            Coordinate = new Coordinate(x, y, 0, 0)
-                        });
-                        break;
+                    switch (data[x, y, z])
+                    {
+                        case PlaceableType.Stone:
+                            var cullDirection = CullDirection.None;
+
+                            if (x > 0 && PlaceableType.IsBlock(data[x - 1, y, z])) cullDirection |= CullDirection.West;
+                            if (x < Chunk.Size - 1 && PlaceableType.IsBlock(data[x + 1, y, z])) cullDirection |= CullDirection.East;
+                            if (y > 0 && PlaceableType.IsBlock(data[x, y - 1, z])) cullDirection |= CullDirection.Low;
+                            if (y < Chunk.Size - 1 && PlaceableType.IsBlock(data[x, y + 1, z])) cullDirection |= CullDirection.High;
+                            if (z > 0 && PlaceableType.IsBlock(data[x, y, z - 1])) cullDirection |= CullDirection.South;
+                            if (z < Chunk.Size - 1 && PlaceableType.IsBlock(data[x, y, z + 1])) cullDirection |= CullDirection.North;
+
+                            _placeables.Add(new Stone()
+                            {
+                                Coordinate = new Coordinate(x, y, z, 0),
+                                CullDirection = cullDirection
+                            });
+
+                            break;
+                    }
                 }
             }
         }
 
         return _placeables;
     }
-    
-    
 
     public Chunk()
     {
@@ -71,8 +88,12 @@ public class Chunk
         {
             for (int y = 0; y < Size; y++)
             {
-                data[x, y] =
-                    Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Y + y) * 0.1) < 0 ? PlaceableType.Air : PlaceableType.Stone;
+                for (int z = 0; z < Size; z++)
+                {
+                    data[x, y, z] = Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Z + z) * 0.1) * 4 + 4 < y
+                            ? PlaceableType.Air
+                            : PlaceableType.Stone;
+                }
             }
         }
     }

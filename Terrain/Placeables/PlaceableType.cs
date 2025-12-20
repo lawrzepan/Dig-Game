@@ -1,7 +1,20 @@
+using System;
+
 namespace DigGame.Terrain.Tile;
 
-public enum PlaceableType: byte
+public static class PlaceableType
 {
-    Air = 0,
-    Stone = 1,
+    public static bool IsBlock(Int16 PlaceableType)
+    {
+        switch (PlaceableType)
+        {
+            case 1:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    public const Int16 Air = 0;
+    public const Int16 Stone = 1;
 }

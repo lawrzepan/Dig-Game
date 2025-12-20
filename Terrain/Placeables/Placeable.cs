@@ -1,22 +1,19 @@
+using DigGame.Terrain.Placeables;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace DigGame.Terrain.Objects;
-
-public interface IPlaceableVertices
-{
-    public abstract VertexPositionColorTexture[] Vertices { get; }
-    static abstract VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices);
-}
 
 /// <summary>
 /// The base class for anything placeable.
 /// </summary>
 public abstract class Placeable
 {
-    public abstract VertexPositionColorTexture[] Vertices { get; }
+    public abstract VertexLayoutType VertexLayoutType { get; }
     public abstract Coordinate Coordinate { get; set; }
-
+    
+    public abstract CullDirection CullDirection { get; set; }
+        
     public VertexPositionColorTexture[] AddCoordinate(VertexPositionColorTexture[] vertices)
     {
         for (int i = 0; i < vertices.Length; i++)
@@ -26,23 +23,21 @@ public abstract class Placeable
 
         return vertices;
     }
+    
+    public abstract VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices);
 }
 
-public sealed class Stone : Placeable, IPlaceableVertices
+public sealed class Stone : Placeable
 {
+    public override VertexLayoutType VertexLayoutType { get; } = VertexLayoutType.Cube;
+    
     public override Coordinate Coordinate { get; set; }
 
-    public override VertexPositionColorTexture[] Vertices
-    {
-        get
-        {
-            return AddCoordinate(SetTextures(VertexLayout.CubeLayout));
-        }
-    }
+    public override CullDirection CullDirection { get; set; }
 
-    public static VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices)
+    public override VertexPositionColorTexture[] SetTextures(VertexPositionColorTexture[] vertices)
     {
-        float textureWidth = 1;
+        float textureWidth = 32f / 1024f;
         for (int i = 0; i < vertices.Length; i += 6)
         {
             vertices[i].TextureCoordinate = new Vector2(0, textureWidth);

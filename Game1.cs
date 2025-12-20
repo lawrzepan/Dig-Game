@@ -18,7 +18,7 @@ public class Game1 : Core
 
     private Camera3D camera = new Camera3D()
     {
-        Position = new Vector3(-3f, 5f, -3f)
+        Position = new Vector3(-3f, 10f, -3f)
     };
 
     private ChunkDrawer chunkDrawer;
@@ -59,20 +59,6 @@ public class Game1 : Core
         GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
         var stopwatch = Stopwatch.StartNew();
-
-        texture = new Texture2D(GraphicsDevice, 128, 128);
-
-        Color[] data = new Color[128 * 128];
-        for (float x = 0; x < 128f; x++)
-        {
-            for (float y = 0; y < 128f; y++)
-            {
-                float intensity = (float)Noise.Perlin(x / 10, y / 10) / 2f + 0.5f;
-                data[(int)x + (int)y * 128] = new Color(intensity, intensity, intensity);
-            }
-        }
-        texture.SetData(data);
-        camera.shader.Texture = texture;
         
         chunk = new Chunk();
         chunkDrawer = new ChunkDrawer(GraphicsDevice);
@@ -107,6 +93,16 @@ public class Game1 : Core
         if (keyboardState.IsKeyDown(Keys.W))
         {
             camera.Position += new Vector3(0.1f, 0f, 0f);
+        }
+        
+        if (keyboardState.IsKeyDown(Keys.Q))
+        {
+            camera.Position += new Vector3(0f, -0.1f, 0f);
+        }
+
+        if (keyboardState.IsKeyDown(Keys.E))
+        {
+            camera.Position += new Vector3(0f, 0.1f, 0f);
         }
         
         camera.shader.View = Matrix.CreateLookAt(camera.Position, Vector3.Zero, Vector3.Up);
