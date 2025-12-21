@@ -85,7 +85,7 @@ public class Game1 : Core
         
         Mouse.SetPosition((int)halfScreen.X, (int)halfScreen.Y);
         
-        var forwardVector = camera.PitchYawToVector3(camera.Pitch, camera.Yaw);
+        var forwardVector = camera.PitchYawToVector3(-camera.Pitch, camera.Yaw);
         var rightVector = camera.PitchYawToVector3(-camera.Pitch, camera.Yaw + MathF.PI / 2);
         
         var keyboardState = Keyboard.GetState();
