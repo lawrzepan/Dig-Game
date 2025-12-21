@@ -33,7 +33,7 @@ public class Chunk
     /// <summary>
     /// The square width of every chunk, in tiles.
     /// </summary>
-    public const int Size = 8;
+    public const int Size = 16;
     
     public Coordinate Coordinate { get; private set; }
 
@@ -69,7 +69,7 @@ public class Chunk
 
                             _placeables.Add(new Stone()
                             {
-                                Coordinate = new Coordinate(x, y, z, 0),
+                                Coordinate = new Coordinate(x, y, z, 0) + Coordinate,
                                 CullDirection = cullDirection
                             });
 
@@ -82,15 +82,18 @@ public class Chunk
         return _placeables;
     }
 
-    public Chunk()
+    public Chunk(Coordinate coordinate)
     {
+        Coordinate = coordinate;
+        
         for (int x = 0; x < Size; x++)
         {
             for (int y = 0; y < Size; y++)
             {
                 for (int z = 0; z < Size; z++)
                 {
-                    data[x, y, z] = Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Z + z) * 0.1) * 4 + 4 < y
+                    double perlin = Noise.Perlin((Coordinate.X + x) * 0.1, (Coordinate.Z + z) * 0.1);
+                    data[x, y, z] = Math.Pow(perlin * 1.2 + 1.2, 4) < y && 16 - perlin * 4 - 4 > y
                             ? PlaceableType.Air
                             : PlaceableType.Stone;
                 }

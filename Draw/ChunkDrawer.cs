@@ -1,3 +1,4 @@
+using System;
 using DigGame.Terrain.Chunking;
 using DigGame.Terrain.Objects;
 using DigGame.Terrain.Placeables;
@@ -7,7 +8,7 @@ namespace DigGame.Draw;
 
 public class ChunkDrawer
 {
-    public static int MaxSize = 20000;
+    public static int MaxSize = 200000;
 
     private int vertexCount = 0;
     private VertexPositionColorTexture[] vertices;
@@ -29,6 +30,8 @@ public class ChunkDrawer
     public void UploadChunk(Chunk chunk)
     {
         int startIndex = vertexCount;
+        if (startIndex >= MaxSize) return;
+        
         int endIndex;
         
         foreach (var placeable in chunk.Placeables)
@@ -78,11 +81,16 @@ public class ChunkDrawer
         outsideLoop:
 
         endIndex = vertexCount > 0 ? vertexCount : 0;
+        if (endIndex >= MaxSize) endIndex = MaxSize - 1;
+
+        Console.WriteLine($"writing vertices from [{startIndex} to {endIndex})");
         
         vertexBuffer.SetData(
+            startIndex * 24, // 24 is the size of VertexPositionColorTexture in bytes, do not edit
             vertices,
             startIndex,
-            endIndex - startIndex
+            endIndex - startIndex,
+            0
         );
     }
 

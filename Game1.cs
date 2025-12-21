@@ -3,6 +3,7 @@ using System.Diagnostics;
 using DigGame.Draw;
 using DigGame.Draw.Camera;
 using DigGame.Terrain.Chunking;
+using DigGame.Terrain.Objects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -22,11 +23,13 @@ public class Game1 : Core
     };
 
     private ChunkDrawer chunkDrawer;
-    private Chunk chunk;
+    private ChunkManager chunkManager;
 
     private Texture2D texture;
+
+    private Vector2 halfScreen = new Vector2(16 * 45, 9 * 45);
     
-    public Game1() : base("Dig-Game", 1920, 1080, true)
+    public Game1() : base("Dig-Game", 16 * 90 , 9 * 90, false)
     {
         
     }
@@ -59,10 +62,14 @@ public class Game1 : Core
         GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
         var stopwatch = Stopwatch.StartNew();
-        
-        chunk = new Chunk();
+
         chunkDrawer = new ChunkDrawer(GraphicsDevice);
-        chunkDrawer.UploadChunk(chunk);
+        chunkManager = new ChunkManager(chunkDrawer);
+        
+        chunkManager.LoadChunk(new Coordinate(0, 0, 0, 0));
+        chunkManager.LoadChunk(new Coordinate(16, 0, 0, 0));
+        chunkManager.LoadChunk(new Coordinate(0, 0, 16, 0));
+        chunkManager.LoadChunk(new Coordinate(16, 0, 16, 0));
         
         stopwatch.Stop();
         
@@ -71,41 +78,41 @@ public class Game1 : Core
 
     protected override void Update(GameTime gameTime)
     {
+        var mouseState = Mouse.GetState();
+
+        camera.Yaw += (halfScreen.X - mouseState.X) * 0.01f;
+        camera.Pitch += (halfScreen.Y - mouseState.Y) * 0.01f;
+        
+        Mouse.SetPosition((int)halfScreen.X, (int)halfScreen.Y);
+        
+        var forwardVector = camera.PitchYawToVector3(camera.Pitch, camera.Yaw);
+        var rightVector = camera.PitchYawToVector3(-camera.Pitch, camera.Yaw + MathF.PI / 2);
+        
         var keyboardState = Keyboard.GetState();
         
         if (keyboardState.IsKeyDown(Keys.Escape)) Exit();
         
         if (keyboardState.IsKeyDown(Keys.A))
         {
-            camera.Position += new Vector3(0f, 0f, -0.1f);
+            camera.Position += rightVector * 0.1f;
         }
 
         if (keyboardState.IsKeyDown(Keys.D))
         {
-            camera.Position += new Vector3(0f, 0f, 0.1f);
+            camera.Position -= rightVector * 0.1f;
         }
         
         if (keyboardState.IsKeyDown(Keys.S))
         {
-            camera.Position += new Vector3(-0.1f, 0f, 0f);
+            camera.Position -= forwardVector * 0.1f;
         }
 
         if (keyboardState.IsKeyDown(Keys.W))
         {
-            camera.Position += new Vector3(0.1f, 0f, 0f);
+            camera.Position += forwardVector * 0.1f;
         }
         
-        if (keyboardState.IsKeyDown(Keys.Q))
-        {
-            camera.Position += new Vector3(0f, -0.1f, 0f);
-        }
-
-        if (keyboardState.IsKeyDown(Keys.E))
-        {
-            camera.Position += new Vector3(0f, 0.1f, 0f);
-        }
-        
-        camera.shader.View = Matrix.CreateLookAt(camera.Position, Vector3.Zero, Vector3.Up);
+        camera.shader.View = Matrix.CreateLookAt(camera.Position, camera.Position + forwardVector, Vector3.Up);
 
         base.Update(gameTime);
     }
