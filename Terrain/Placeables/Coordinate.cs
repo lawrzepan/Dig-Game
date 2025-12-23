@@ -25,6 +25,19 @@ public struct Coordinate
             coordinate1.Z + coordinate2.Z, coordinate1.Layer);
     }
 
+    public static bool operator ==(Coordinate coordinate1, Coordinate coordinate2)
+    {
+        return coordinate1.X == coordinate2.X &&
+               coordinate1.Y == coordinate2.Y &&
+               coordinate1.Z == coordinate2.Z &&
+               coordinate1.Layer == coordinate2.Layer;
+    }
+    
+    public static bool operator !=(Coordinate coordinate1, Coordinate coordinate2)
+    {
+        return !(coordinate1 == coordinate2);
+    }
+
     public Coordinate(int x, int y, int z, int layer)
     {
         X = x;

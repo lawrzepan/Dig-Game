@@ -34,6 +34,8 @@ public class Chunk
     /// The square width of every chunk, in tiles.
     /// </summary>
     public const int Size = 16;
+
+    public Draw.Range AllocatedRange { get; set; }
     
     public Coordinate Coordinate { get; private set; }
 

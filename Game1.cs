@@ -19,7 +19,8 @@ public class Game1 : Core
 
     private Camera3D camera = new Camera3D()
     {
-        Position = new Vector3(-3f, 10f, -3f)
+        Position = new Vector3(-3f, 10f, -3f),
+        Pitch = MathF.PI / 2
     };
 
     private ChunkDrawer chunkDrawer;
@@ -68,8 +69,15 @@ public class Game1 : Core
         
         chunkManager.LoadChunk(new Coordinate(0, 0, 0, 0));
         chunkManager.LoadChunk(new Coordinate(16, 0, 0, 0));
+        chunkManager.LoadChunk(new Coordinate(32, 0, 0, 0));
         chunkManager.LoadChunk(new Coordinate(0, 0, 16, 0));
         chunkManager.LoadChunk(new Coordinate(16, 0, 16, 0));
+        chunkManager.LoadChunk(new Coordinate(32, 0, 16, 0));
+        chunkManager.LoadChunk(new Coordinate(0, 0, 32, 0));
+        chunkManager.LoadChunk(new Coordinate(16, 0, 32, 0));
+        chunkManager.LoadChunk(new Coordinate(32, 0, 32, 0));
+
+        chunkManager.UnloadChunk(new Coordinate(16, 0, 16, 0));
         
         stopwatch.Stop();
         
@@ -80,13 +88,13 @@ public class Game1 : Core
     {
         var mouseState = Mouse.GetState();
 
-        camera.Yaw += (halfScreen.X - mouseState.X) * 0.01f;
-        camera.Pitch += (halfScreen.Y - mouseState.Y) * 0.01f;
+        camera.Yaw += (halfScreen.X - mouseState.X) * 0.005f;
+        camera.Pitch += (halfScreen.Y - mouseState.Y) * 0.005f;
         
         Mouse.SetPosition((int)halfScreen.X, (int)halfScreen.Y);
         
         var forwardVector = camera.PitchYawToVector3(-camera.Pitch, camera.Yaw);
-        var rightVector = camera.PitchYawToVector3(-camera.Pitch, camera.Yaw + MathF.PI / 2);
+        var rightVector = camera.PitchYawToVector3(0, camera.Yaw + MathF.PI / 2);
         
         var keyboardState = Keyboard.GetState();
         
@@ -94,12 +102,12 @@ public class Game1 : Core
         
         if (keyboardState.IsKeyDown(Keys.A))
         {
-            camera.Position += rightVector * 0.1f;
+            camera.Position -= rightVector * 0.1f;
         }
 
         if (keyboardState.IsKeyDown(Keys.D))
         {
-            camera.Position -= rightVector * 0.1f;
+            camera.Position += rightVector * 0.1f;
         }
         
         if (keyboardState.IsKeyDown(Keys.S))
