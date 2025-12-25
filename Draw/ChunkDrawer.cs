@@ -10,7 +10,7 @@ namespace DigGame.Draw;
 
 public class ChunkDrawer
 {
-    public static int MaxSize = 200000;
+    public static int MaxSize = 10000000;
 
     private int vertexCount = 0;
     private VertexPositionColorTexture[] vertices;
@@ -159,9 +159,9 @@ public class ChunkDrawer
     {
         var range = chunk.AllocatedRange;
         range.RangeType = RangeType.Empty;
-
+        
         var i = vertexPager.GetFromRange(chunk.AllocatedRange);
-        if (i.HasValue)
+        if (i != null)
         {
             vertexPager.Ranges[i.Value] = range;
         }
@@ -171,6 +171,8 @@ public class ChunkDrawer
         {
             vertices[v] = new VertexPositionColorTexture(Vector3.Zero, Color.Black, Vector2.Zero);
         }
+        
+        
         
         vertexBuffer.SetData(
             range.Start * 24, // 24 is the size of VertexPositionColorTexture in bytes, do not edit
@@ -201,7 +203,7 @@ public class ChunkDrawer
             pass.Apply();
             
             graphicsDevice.SetVertexBuffer(vertexBuffer);
-            graphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, vertexCount / 3);
+            graphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, (int)MathF.Floor(vertexPager.GetNumVerticesToDraw() / 3f));
         }
     }
 }

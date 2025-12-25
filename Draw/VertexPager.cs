@@ -140,6 +140,18 @@ public class VertexPager
         return true;
     }
 
+    public int GetNumVerticesToDraw()
+    {
+        if (Ranges[^1].RangeType == RangeType.Empty)
+        {
+            return Ranges[^2].End + 1;
+        }
+        else
+        {
+            return ArrayLength;
+        }
+    }
+
     public bool IsEmpty(Range range)
     {
         int i = 0;
@@ -163,7 +175,7 @@ public class VertexPager
     {
         for (int i = 0; i < Ranges.Count; i++)
         {
-            if (Ranges[i] == range) return i;
+            if (Ranges[i].Start == range.Start) return i;
         }
 
         return null;

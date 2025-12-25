@@ -38,7 +38,7 @@ public class Chunk
     public Draw.Range AllocatedRange { get; set; }
     
     public Coordinate Coordinate { get; private set; }
-
+    
     private ChunkData data = new ChunkData();
 
     private bool placeablesInitialised = false;

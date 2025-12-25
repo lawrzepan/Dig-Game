@@ -99,29 +99,34 @@ public class Game1 : Core
         var keyboardState = Keyboard.GetState();
         
         if (keyboardState.IsKeyDown(Keys.Escape)) Exit();
+
+        float speed = 0.3f;
         
         if (keyboardState.IsKeyDown(Keys.A))
         {
-            camera.Position -= rightVector * 0.1f;
+            camera.Position -= rightVector * speed;
         }
 
         if (keyboardState.IsKeyDown(Keys.D))
         {
-            camera.Position += rightVector * 0.1f;
+            camera.Position += rightVector * speed;
         }
         
         if (keyboardState.IsKeyDown(Keys.S))
         {
-            camera.Position -= forwardVector * 0.1f;
+            camera.Position -= forwardVector * speed;
         }
 
         if (keyboardState.IsKeyDown(Keys.W))
         {
-            camera.Position += forwardVector * 0.1f;
+            camera.Position += forwardVector * speed;
         }
         
         camera.shader.View = Matrix.CreateLookAt(camera.Position, camera.Position + forwardVector, Vector3.Up);
 
+        chunkManager.LoadChunksInRadius(64f, new Coordinate((int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size / 2, 0,
+            (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size / 2, 0));
+        
         base.Update(gameTime);
     }
 
