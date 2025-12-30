@@ -135,7 +135,7 @@ public class Game1 : Core
 
         chunkManager.LoadChunksInRadius(32f, new Coordinate((int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size, 0,
             (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size, 0));
-
+        
         Vector2 diagramSize = new Vector2(75, 710);
         Vector2 topLeft = new Vector2(50, 50);
         
@@ -183,11 +183,11 @@ public class Game1 : Core
         pagerDiagram[i + 4] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(15, 0), 0), Color.White);
         pagerDiagram[i + 5] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(15, 1), 0), Color.White);
         i += 6;
-        Console.WriteLine(pager.Ranges[^1]);
         
         OnScreenBuffer.SetData(0, pagerDiagram, 0, pagerDiagram.Length, 0);
         
         base.Update(gameTime);
+        
     }
 
     protected override void Draw(GameTime gameTime)

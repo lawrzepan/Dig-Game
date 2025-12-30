@@ -128,8 +128,17 @@ public class ChunkManager
                 Coordinate chunkCoordinate = new Coordinate((int)Math.Floor(xChunk / (float)Chunk.Size) * Chunk.Size, 0, 
                     (int)Math.Floor(zChunk / (float)Chunk.Size) * Chunk.Size, 0);
 
-                int? chunkIndex = FindChunkIndexFromCoordinate(chunkCoordinate, true);
-                if (!chunkIndex.HasValue)
+                int? chunkIndex = null;
+                for (int i = 0; i < LoadedChunks.Count; i++)
+                {
+                    if (LoadedChunks[i].Coordinate == chunkCoordinate) chunkIndex = i;
+                }
+                
+                if (chunkIndex.HasValue)
+                {
+                    chunksInView[chunkIndex.Value] = true;
+                }
+                else
                 {
                     bool found = false;
                     foreach (var chunk in chunksToLoad)
@@ -143,10 +152,6 @@ public class ChunkManager
                         Console.WriteLine($"loading chunk {chunkCoordinate}");
                     }
                 }
-                else
-                {
-                    chunksInView[chunkIndex.Value] = true;
-                }
             }
         }
         for (int i = chunksInView.Length - 1; i >= 0; i--)
@@ -157,6 +162,8 @@ public class ChunkManager
                 UnloadChunk(LoadedChunks[i].Coordinate, true);
             }
         }
+
+        Console.WriteLine(LoadedChunks.Count);
         
         loadedChunksInUse = false;
         
