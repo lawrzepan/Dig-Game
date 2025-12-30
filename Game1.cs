@@ -8,7 +8,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary;
-using MonoGameLibrary.Noise;
 
 namespace DigGame;
 
@@ -29,10 +28,13 @@ public class Game1 : Core
     private Texture2D texture;
 
     private Vector2 halfScreen = new Vector2(16 * 45, 9 * 45);
+
+    private VertexBuffer OnScreenBuffer;
+    private BasicEffect onScreenEffect;
     
     public Game1() : base("Dig-Game", 16 * 90 , 9 * 90, false)
     {
-        
+        Window.IsBorderless = false;
     }
 
     protected override void Initialize()
@@ -54,7 +56,7 @@ public class Game1 : Core
             VertexColorEnabled = true,
             World = Matrix.Identity,
             View = Matrix.CreateLookAt(camera.Position, Vector3.Zero, Vector3.Right),
-            Projection = Matrix.CreatePerspectiveFieldOfView(float.DegreesToRadians(90f), 16f / 9f, 0.1f, 100.0f),
+            Projection = Matrix.CreatePerspectiveFieldOfView(float.DegreesToRadians(90f), 16f / 9f, 0.1f, 3000.0f),
             Texture = texture
         };
         camera.shader.TextureEnabled = true;
@@ -67,21 +69,23 @@ public class Game1 : Core
         chunkDrawer = new ChunkDrawer(GraphicsDevice);
         chunkManager = new ChunkManager(chunkDrawer);
         
-        chunkManager.LoadChunk(new Coordinate(0, 0, 0, 0));
-        chunkManager.LoadChunk(new Coordinate(16, 0, 0, 0));
-        chunkManager.LoadChunk(new Coordinate(32, 0, 0, 0));
-        chunkManager.LoadChunk(new Coordinate(0, 0, 16, 0));
-        chunkManager.LoadChunk(new Coordinate(16, 0, 16, 0));
-        chunkManager.LoadChunk(new Coordinate(32, 0, 16, 0));
-        chunkManager.LoadChunk(new Coordinate(0, 0, 32, 0));
-        chunkManager.LoadChunk(new Coordinate(16, 0, 32, 0));
-        chunkManager.LoadChunk(new Coordinate(32, 0, 32, 0));
-
-        chunkManager.UnloadChunk(new Coordinate(16, 0, 16, 0));
-        
         stopwatch.Stop();
         
         Console.WriteLine($"took {Math.Round(stopwatch.ElapsedTicks * (1000000f / Stopwatch.Frequency), 1)} microseconds");
+
+        OnScreenBuffer = new VertexBuffer(GraphicsDevice, VertexPositionColor.VertexDeclaration, 50000,
+            BufferUsage.WriteOnly);
+        onScreenEffect = new BasicEffect(GraphicsDevice)
+        {
+            World = Matrix.Identity,
+            View = Matrix.Identity,
+            Projection = Matrix.CreateOrthographicOffCenter(
+                0, GraphicsDevice.Viewport.Width,
+                GraphicsDevice.Viewport.Height, 0, // Invert Y-axis for top-left origin
+                0, 1 // Near and Far planes
+            ),
+            VertexColorEnabled = true
+        };
     }
 
     protected override void Update(GameTime gameTime)
@@ -100,7 +104,12 @@ public class Game1 : Core
         
         if (keyboardState.IsKeyDown(Keys.Escape)) Exit();
 
-        float speed = 0.3f;
+        float speed = 0.1f;
+
+        if (keyboardState.IsKeyDown(Keys.LeftShift))
+        {
+            speed = 0.5f;
+        }
         
         if (keyboardState.IsKeyDown(Keys.A))
         {
@@ -124,8 +133,59 @@ public class Game1 : Core
         
         camera.shader.View = Matrix.CreateLookAt(camera.Position, camera.Position + forwardVector, Vector3.Up);
 
-        chunkManager.LoadChunksInRadius(64f, new Coordinate((int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size / 2, 0,
-            (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size / 2, 0));
+        chunkManager.LoadChunksInRadius(32f, new Coordinate((int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size, 0,
+            (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size, 0));
+
+        Vector2 diagramSize = new Vector2(75, 710);
+        Vector2 topLeft = new Vector2(50, 50);
+        
+        VertexPositionColor[] pagerDiagram = new VertexPositionColor[50000];
+
+        var pager = chunkManager.ChunkDrawer.vertexPager;
+        
+        int i = 0;
+        for (int range = 0; range < pager.Ranges.Count; range++)
+        {
+            if (range >= pager.Ranges.Count) break;
+            var currentRange = pager.Ranges[range];
+            
+            if (currentRange.RangeType == RangeType.Full)
+            {
+                pagerDiagram[i] = new VertexPositionColor(new Vector3(topLeft.X, 
+                    (float)currentRange.Start / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                pagerDiagram[i + 1] = new VertexPositionColor(new Vector3(topLeft.X + diagramSize.X, 
+                    (float)currentRange.Start / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                pagerDiagram[i + 2] = new VertexPositionColor(new Vector3(topLeft.X, 
+                    (float)currentRange.End / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                pagerDiagram[i + 3] = new VertexPositionColor(new Vector3(topLeft.X, 
+                    (float)currentRange.End / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                pagerDiagram[i + 4] = new VertexPositionColor(new Vector3(topLeft.X + diagramSize.X, 
+                    (float)currentRange.Start / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                pagerDiagram[i + 5] = new VertexPositionColor(new Vector3(topLeft.X + diagramSize.X, 
+                    (float)currentRange.End / pager.ArrayLength * diagramSize.Y + topLeft.Y, 
+                    0), Color.Green);
+                i += 6;
+            }
+        }
+
+        Vector2 verticesDrawnLocation = new Vector2(topLeft.X - 20,
+            pager.GetNumVerticesToDraw() / (float)pager.ArrayLength + topLeft.Y - 0.5f);
+
+        pagerDiagram[i] = new VertexPositionColor(new Vector3(verticesDrawnLocation, 0), Color.White);
+        pagerDiagram[i + 1] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(15, 0), 0), Color.White);
+        pagerDiagram[i + 2] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(0, 1), 0), Color.White);
+        pagerDiagram[i + 3] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(0, 1), 0), Color.White);
+        pagerDiagram[i + 4] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(15, 0), 0), Color.White);
+        pagerDiagram[i + 5] = new VertexPositionColor(new Vector3(verticesDrawnLocation + new Vector2(15, 1), 0), Color.White);
+        i += 6;
+        Console.WriteLine(pager.Ranges[^1]);
+        
+        OnScreenBuffer.SetData(0, pagerDiagram, 0, pagerDiagram.Length, 0);
         
         base.Update(gameTime);
     }
@@ -135,6 +195,13 @@ public class Game1 : Core
         GraphicsDevice.Clear(Color.Black);
         
         chunkDrawer.DrawUploadedChunks(camera.shader);
+
+        foreach (var pass in onScreenEffect.CurrentTechnique.Passes)
+        {
+            pass.Apply();
+            GraphicsDevice.SetVertexBuffer(OnScreenBuffer);
+            GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, (int)MathF.Floor(OnScreenBuffer.VertexCount / 3f));
+        }
 
         base.Draw(gameTime);
     }

@@ -14,7 +14,7 @@ public class ChunkManager
 {
     public Vector3 Centre = Vector3.Zero;
 
-    public List<(Chunk, bool)> LoadedChunks = new List<(Chunk, bool)>(50);
+    private List<Chunk> LoadedChunks = new List<Chunk>(50);
     private bool loadedChunksInUse = false;
 
     public ChunkDrawer ChunkDrawer;
@@ -31,7 +31,7 @@ public class ChunkManager
         
         WaitToUseLoadedChunks();
         loadedChunksInUse = true;
-        LoadedChunks.Add((chunk, false));
+        LoadedChunks.Add(chunk);
         
         loadedChunksInUse = false;
         
@@ -47,7 +47,7 @@ public class ChunkManager
     {
         WaitToUseLoadedChunks();
         loadedChunksInUse = true;
-        foreach (var (chunk, _) in LoadedChunks)
+        foreach (var chunk in LoadedChunks)
         {
             if (chunk.Coordinate == coordinate)
             {
@@ -60,84 +60,109 @@ public class ChunkManager
         return null;
     }
     
-    public int? FindChunkIndexFromCoordinate(Coordinate coordinate)
+    public int? FindChunkIndexFromCoordinate(Coordinate coordinate, bool loadedChunksPermission)
     {
-        WaitToUseLoadedChunks();
-        loadedChunksInUse = true;
+        if (!loadedChunksPermission)
+        {
+            WaitToUseLoadedChunks();
+            loadedChunksInUse = true;
+        }
         for (int i = 0; i < LoadedChunks.Count; i++)
         {
-            if (LoadedChunks[i].Item1.Coordinate == coordinate)
+            if (LoadedChunks[i].Coordinate == coordinate)
             {
-                loadedChunksInUse = false;
+                if (!loadedChunksPermission) loadedChunksInUse = false;
                 return i;
             }
         }
-        loadedChunksInUse = false;
+
+        if (!loadedChunksPermission) loadedChunksInUse = false;
 
         return null;
     }
     
-    
-    // when using, make sure you are allowed to use LoadedChunks!!! (threading)
-    public bool UnloadChunk(Coordinate coordinate)
+    public bool UnloadChunk(Coordinate coordinate, bool loadedChunksPermission)
     {
-        int? index = FindChunkIndexFromCoordinate(coordinate);
-
-        if (index != null)
+        int? index = FindChunkIndexFromCoordinate(coordinate, loadedChunksPermission);
+        
+        if (!loadedChunksPermission)
         {
-            ChunkDrawer.UnloadChunk(LoadedChunks[index.Value].Item1);
-            
             WaitToUseLoadedChunks();
             loadedChunksInUse = true;
+        }
+        
+        if (index.HasValue)
+        {
+            ChunkDrawer.UnloadChunk(LoadedChunks[index.Value]);
+            
             LoadedChunks.RemoveAt(index.Value);
-            loadedChunksInUse = false;
+
+            if (!loadedChunksPermission) loadedChunksInUse = false;
 
             return true;
         }
         
+        if (!loadedChunksPermission) loadedChunksInUse = false;
         return false;
     }
 
     public void LoadChunksInRadius(float radius, Coordinate centreChunk)
     {
-        for (int i = 0; i < LoadedChunks.Count; i++)
+        WaitToUseLoadedChunks();
+        loadedChunksInUse = true;
+
+        bool[] chunksInView = new bool[LoadedChunks.Count];
+        for (int i = 0; i < chunksInView.Length; i++)
         {
-            LoadedChunks[i] = (LoadedChunks[i].Item1, false);
+            chunksInView[i] = false;
         }
         
-        int ceilRadius = (int)MathF.Ceiling(radius);
-
-        Coordinate roundedCentreChunk = new Coordinate((int)Math.Floor(centreChunk.X / (float)Chunk.Size) * Chunk.Size, 0,
-            (int)Math.Floor(centreChunk.Z / (float)Chunk.Size) * Chunk.Size, 0);
+        var chunksToLoad = new List<ChunkLoaderContext>();
         
-        for (int xChunk = roundedCentreChunk.X - ceilRadius; xChunk <= centreChunk.X + ceilRadius; xChunk++)
+        int ceilRadius = (int)MathF.Ceiling(radius);
+        
+        for (int xChunk = centreChunk.X - ceilRadius; xChunk <= centreChunk.X + ceilRadius; xChunk++)
         {
-            for (int zChunk = roundedCentreChunk.Z - ceilRadius; zChunk <= centreChunk.Z + ceilRadius; zChunk++)
+            for (int zChunk = centreChunk.Z - ceilRadius; zChunk <= centreChunk.Z + ceilRadius; zChunk++)
             {
                 Coordinate chunkCoordinate = new Coordinate((int)Math.Floor(xChunk / (float)Chunk.Size) * Chunk.Size, 0, 
-                    (int)Math.Floor(zChunk / (float)Chunk.Size) * Chunk.Size, 0) + roundedCentreChunk;
+                    (int)Math.Floor(zChunk / (float)Chunk.Size) * Chunk.Size, 0);
 
-                int? chunkIndex = FindChunkIndexFromCoordinate(chunkCoordinate);
-                if (chunkIndex == null)
+                int? chunkIndex = FindChunkIndexFromCoordinate(chunkCoordinate, true);
+                if (!chunkIndex.HasValue)
                 {
-                    latestCoordinate = chunkCoordinate;
-                    
-                    //Task.Run(LoadChunk);
-                    LoadChunk();
+                    bool found = false;
+                    foreach (var chunk in chunksToLoad)
+                    {
+                        if (chunk.Coordinate == chunkCoordinate) found = true;
+                    }
+
+                    if (!found)
+                    {
+                        chunksToLoad.Add(new ChunkLoaderContext(chunkCoordinate, this));
+                        Console.WriteLine($"loading chunk {chunkCoordinate}");
+                    }
                 }
                 else
                 {
-                    LoadedChunks[chunkIndex.Value] = (LoadedChunks[chunkIndex.Value].Item1, true);
+                    chunksInView[chunkIndex.Value] = true;
                 }
             }
         }
-
-        for (int i = 0; i < LoadedChunks.Count; i++)
+        for (int i = chunksInView.Length - 1; i >= 0; i--)
         {
-            if (!LoadedChunks[i].Item2)
+            if (!chunksInView[i])
             {
-                UnloadChunk(LoadedChunks[i].Item1.Coordinate);
+                Console.WriteLine($"unload chunk {LoadedChunks[i].Coordinate}");
+                UnloadChunk(LoadedChunks[i].Coordinate, true);
             }
+        }
+        
+        loadedChunksInUse = false;
+        
+        foreach (var chunk in chunksToLoad)
+        {
+            Task.Run(chunk.Load);
         }
     }
 
@@ -146,6 +171,17 @@ public class ChunkManager
         while (loadedChunksInUse)
         {
             
+        }
+    }
+
+    private class ChunkLoaderContext(Coordinate coordinate, ChunkManager chunkManager)
+    {
+        public ChunkManager ChunkManager { get; set; } = chunkManager;
+        public Coordinate Coordinate { get; set; } = coordinate;
+
+        public void Load()
+        {
+            ChunkManager.LoadChunk(Coordinate);
         }
     }
 }

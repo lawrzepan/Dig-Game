@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DigGame.Terrain.Objects;
 
 namespace DigGame.Draw;
 
@@ -16,7 +17,7 @@ public enum RangeType
 /// <summary>
 /// Describes a range in indices in a vertex array
 /// </summary>
-public struct Range(int start, int end, RangeType rangeType)
+public struct Range(int start, int end, RangeType rangeType, Coordinate? chunkOwner)
 {
     /// <summary>
     /// the start of the range, inclusive
@@ -37,6 +38,8 @@ public struct Range(int start, int end, RangeType rangeType)
     /// whether this range is full of vertices or empty
     /// </summary>
     public RangeType RangeType { get; set; } = rangeType;
+
+    public Coordinate? ChunkOwner { get; set; } = chunkOwner;
 
     public override string ToString()
     {
@@ -65,7 +68,7 @@ public class VertexPager
     {
         Ranges = new List<Range>();
         
-        Ranges.Add(new Range(0, arrayLength, RangeType.Empty));
+        Ranges.Add(new Range(0, arrayLength, RangeType.Empty, null));
         
         ArrayLength = arrayLength;
     }
@@ -76,7 +79,7 @@ public class VertexPager
     /// </summary>
     /// <param name="size">The amount of indices that needs to be stored.</param>
     /// <returns>The first suitable range with a length of the given Size, or null if none could be found</returns>
-    public Range? FindNextAvailableBlock(int size)
+    public Range? FindNextAvailableBlock(Coordinate? chunkOwner, int size)
     {
         if (size > ArrayLength) return null;
 
@@ -86,6 +89,7 @@ public class VertexPager
             {
                 var range = Ranges[i];
                 range.End = range.Start + size - 1;
+                range.ChunkOwner = chunkOwner;
                 
                 return range;
             }
@@ -110,7 +114,11 @@ public class VertexPager
         while (Ranges[emptyRangeIndex].Start <= range.Start)
         {
             emptyRangeIndex++;
-            if (emptyRangeIndex >= Ranges.Count) break;
+            if (emptyRangeIndex == Ranges.Count)
+            {
+                if (Ranges[emptyRangeIndex - 1].End < range.End) return false;
+                break;
+            }
         }
 
         emptyRangeIndex--;
@@ -122,13 +130,13 @@ public class VertexPager
         // if there is a gap after the end of range, fill it with an empty range
         if (emptyRange.End > range.End)
         {
-            Ranges.Insert(emptyRangeIndex + 1, new Range(range.End + 1, emptyRange.End, RangeType.Empty));
+            Ranges.Insert(emptyRangeIndex + 1, new Range(range.End + 1, emptyRange.End, RangeType.Empty, null));
         }
 
         // if there is a gap before start of range, fill with an empty range
         if (emptyRange.Start < range.Start)
         {
-            Ranges.Insert(emptyRangeIndex, new Range(emptyRange.Start, range.Start - 1, RangeType.Empty));
+            Ranges.Insert(emptyRangeIndex, new Range(emptyRange.Start, range.Start - 1, RangeType.Empty, null));
         }
         
         /*Console.WriteLine($"after adding range (start: {range.Start}, end: {range.End}), the pager is at:");
@@ -142,7 +150,7 @@ public class VertexPager
 
     public int GetNumVerticesToDraw()
     {
-        if (Ranges[^1].RangeType == RangeType.Empty)
+        if (Ranges.Count >= 2 && Ranges[^1].RangeType == RangeType.Empty)
         {
             return Ranges[^2].End + 1;
         }
@@ -179,6 +187,51 @@ public class VertexPager
         }
 
         return null;
+    }
+
+    public void SetAllInRangeEmpty(Range range)
+    {
+        for (int i = 0; i < Ranges.Count; i++)
+        {
+            if (range.Start < Ranges[i].Start && Ranges[i].Start < range.End)
+            {
+                var curRange = Ranges[i];
+                curRange.RangeType = RangeType.Empty;
+                Ranges[i] = curRange;
+            }
+            
+            if (range.Start < Ranges[i].End && Ranges[i].End < range.End)
+            {
+                var curRange = Ranges[i];
+                curRange.RangeType = RangeType.Empty;
+                Ranges[i] = curRange;
+            }
+        }
+    }
+
+    public List<Range> GetAllWithCoordinate(Coordinate coordinate, bool setEmpty)
+    {
+        var list = new List<Range>();
+        
+        for (int i = 0; i < Ranges.Count; i++)
+        {
+            if (Ranges[i].ChunkOwner.HasValue)
+            {
+                if (Ranges[i].ChunkOwner.Value == coordinate)
+                {
+                    list.Add(Ranges[i]);
+
+                    if (setEmpty)
+                    {
+                        var range = Ranges[i];
+                        range.RangeType = RangeType.Empty;
+                        Ranges[i] = range;
+                    }
+                }
+            }
+        }
+
+        return list;
     }
 
     public void MergeEmptyBlocks()

@@ -10,7 +10,7 @@ namespace DigGame.Draw;
 
 public class ChunkDrawer
 {
-    public static int MaxSize = 10000000;
+    public static int MaxSize = 1000000;
 
     private int vertexCount = 0;
     private VertexPositionColorTexture[] vertices;
@@ -19,7 +19,7 @@ public class ChunkDrawer
 
     private GraphicsDevice graphicsDevice;
 
-    private VertexPager vertexPager;
+    public VertexPager vertexPager { get; private set; }
     
     public ChunkDrawer(GraphicsDevice graphicsDevice)
     {
@@ -126,7 +126,7 @@ public class ChunkDrawer
 
         vertexCount += numVertices;
         
-        Range? availableRange = vertexPager.FindNextAvailableBlock(numVertices);
+        Range? availableRange = vertexPager.FindNextAvailableBlock(chunk.Coordinate, numVertices);
         
         if (availableRange == null) return;
 
@@ -157,30 +157,34 @@ public class ChunkDrawer
 
     public void UnloadChunk(Chunk chunk)
     {
-        var range = chunk.AllocatedRange;
-        range.RangeType = RangeType.Empty;
-        
-        var i = vertexPager.GetFromRange(chunk.AllocatedRange);
-        if (i != null)
-        {
-            vertexPager.Ranges[i.Value] = range;
-        }
-        vertexPager.MergeEmptyBlocks();
+        var emptyRanges = vertexPager.GetAllWithCoordinate(chunk.Coordinate, true);
 
-        for (int v = range.Start; v <= range.End; v++)
+        (int, int) affectedRange = (int.MaxValue, int.MinValue);
+        
+        foreach (var range in emptyRanges)
         {
-            vertices[v] = new VertexPositionColorTexture(Vector3.Zero, Color.Black, Vector2.Zero);
+            if (range.Start < affectedRange.Item1) affectedRange.Item1 = range.Start;
+            if (range.End > affectedRange.Item2) affectedRange.Item2 = range.End;
+            
+            for (int v = range.Start; v <= range.End; v++)
+            {
+                if (v >= vertices.Length) break;
+                vertices[v] = new VertexPositionColorTexture(Vector3.Zero, Color.Black, Vector2.Zero);
+            }
         }
         
+        vertexPager.MergeEmptyBlocks();
         
-        
-        vertexBuffer.SetData(
-            range.Start * 24, // 24 is the size of VertexPositionColorTexture in bytes, do not edit
-            vertices,
-            range.Start,
-            range.Length,
-            0
-        );
+        if (affectedRange.Item1 >= 0 && affectedRange.Item2 <= vertexPager.ArrayLength)
+        {
+            vertexBuffer.SetData(
+                affectedRange.Item1 * 24, // 24 is the size of VertexPositionColorTexture in bytes, do not edit
+                vertices,
+                affectedRange.Item1,
+                (affectedRange.Item2 < vertexBuffer.VertexCount ? affectedRange.Item2 : vertexBuffer.VertexCount - 1) - affectedRange.Item1 + 1,
+                0
+            );
+        }
     }
 
     public VertexPositionColorTexture[] GetVertexLayoutFromType(VertexLayoutType vertexLayoutType)

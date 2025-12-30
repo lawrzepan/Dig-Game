@@ -38,6 +38,11 @@ public struct Coordinate
         return !(coordinate1 == coordinate2);
     }
 
+    public override string ToString()
+    {
+        return $"X: {X}, Y: {Y}, Z: {Z}, Layer: {Layer}";
+    }
+
     public Coordinate(int x, int y, int z, int layer)
     {
         X = x;
