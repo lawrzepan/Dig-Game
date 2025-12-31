@@ -31,6 +31,8 @@ public class Game1 : Core
 
     private VertexBuffer OnScreenBuffer;
     private BasicEffect onScreenEffect;
+
+    private long tick = 0;
     
     public Game1() : base("Dig-Game", 16 * 90 , 9 * 90, false)
     {
@@ -90,6 +92,8 @@ public class Game1 : Core
 
     protected override void Update(GameTime gameTime)
     {
+        tick += 1;
+        
         var mouseState = Mouse.GetState();
 
         camera.Yaw += (halfScreen.X - mouseState.X) * 0.005f;
@@ -133,11 +137,15 @@ public class Game1 : Core
         
         camera.shader.View = Matrix.CreateLookAt(camera.Position, camera.Position + forwardVector, Vector3.Up);
 
-        chunkManager.LoadChunksInRadius(32f, new Coordinate((int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size, 0,
-            (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size, 0));
+        if (tick % 3 == 0)
+        {
+            chunkManager.LoadChunksInRadius(64f, new Coordinate(
+                (int)Math.Floor(camera.Position.X / (float)Chunk.Size) * Chunk.Size, 0,
+                (int)Math.Floor(camera.Position.Z / (float)Chunk.Size) * Chunk.Size, 0));
+        }
         
         Vector2 diagramSize = new Vector2(75, 710);
-        Vector2 topLeft = new Vector2(50, 50);
+        Vector2 topLeft = new Vector2(1315, 50);
         
         VertexPositionColor[] pagerDiagram = new VertexPositionColor[50000];
 

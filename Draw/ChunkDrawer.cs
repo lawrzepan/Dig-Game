@@ -10,7 +10,7 @@ namespace DigGame.Draw;
 
 public class ChunkDrawer
 {
-    public static int MaxSize = 1000000;
+    public static int MaxSize = 4000000;
 
     private int vertexCount = 0;
     private VertexPositionColorTexture[] vertices;
@@ -202,11 +202,11 @@ public class ChunkDrawer
     
     public void DrawUploadedChunks(BasicEffect effect)
     {
+        graphicsDevice.SetVertexBuffer(vertexBuffer);
         foreach (var pass in effect.CurrentTechnique.Passes)
         {
             pass.Apply();
             
-            graphicsDevice.SetVertexBuffer(vertexBuffer);
             graphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, (int)MathF.Floor(vertexPager.GetNumVerticesToDraw() / 3f));
         }
     }
